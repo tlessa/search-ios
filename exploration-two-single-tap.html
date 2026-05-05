@@ -294,6 +294,20 @@
 				margin-right: 0;
 			}
 
+			/* In focused search mode, hide the Explore/feed tab and give search full width. */
+			body.search-typing #tab-bar #tab-buttons-group {
+				flex: 0 0 0;
+				width: 0;
+				min-width: 0;
+				overflow: hidden;
+				opacity: 0;
+				pointer-events: none;
+			}
+
+			body.search-typing #search-field-row {
+				width: 100%;
+			}
+
 			body.search-view-active #wiki-article {
 				display: none;
 			}
@@ -707,7 +721,47 @@
 			let predictedSearchResults = [];
 			let predictionRequestToken = 0;
 			let predictionDebounceTimer = null;
+			const placeholderSearchHistory = [
+				{
+					query: "Saturn rings",
+					title: "Saturn",
+					description: "Gas giant of the outer Solar System, known for its prominent ring system.",
+					thumbnail: "https://picsum.photos/seed/saturn-template/120/120",
+					timestamp: Date.now() - 1000 * 60 * 22,
+				},
+				{
+					query: "Frida Kahlo",
+					title: "Frida Kahlo",
+					description: "Mexican painter known for self-portraits and works inspired by nature and culture.",
+					thumbnail: "https://picsum.photos/seed/frida-template/120/120",
+					timestamp: Date.now() - 1000 * 60 * 60 * 7,
+				},
+				{
+					query: "Kyoto temples",
+					title: "Kyoto",
+					description: "Historic city in Japan famous for temples, shrines, and traditional districts.",
+					thumbnail: "https://picsum.photos/seed/kyoto-template/120/120",
+					timestamp: Date.now() - 1000 * 60 * 60 * 30,
+				},
+			];
 			try { searchHistory = JSON.parse(sessionStorage.getItem("wikiSearchHistory") || "[]"); } catch (_) {}
+			if (!Array.isArray(searchHistory) || searchHistory.length === 0) {
+				searchHistory = placeholderSearchHistory.map((entry) => ({ ...entry }));
+				saveSearchHistory();
+			}
+			const templateThumbnailByQuery = {
+				"Saturn rings": "https://picsum.photos/seed/saturn-template/120/120",
+				"Frida Kahlo": "https://picsum.photos/seed/frida-template/120/120",
+				"Kyoto temples": "https://picsum.photos/seed/kyoto-template/120/120",
+			};
+			let seededHistoryUpdated = false;
+			searchHistory = searchHistory.map((entry) => {
+				const thumb = templateThumbnailByQuery[entry?.query || ""];
+				if (!thumb || entry?.thumbnail) return entry;
+				seededHistoryUpdated = true;
+				return { ...entry, thumbnail: thumb };
+			});
+			if (seededHistoryUpdated) saveSearchHistory();
 
 			function saveSearchHistory() {
 				try { sessionStorage.setItem("wikiSearchHistory", JSON.stringify(searchHistory)); } catch (_) {}
