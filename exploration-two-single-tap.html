@@ -1,0 +1,1269 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Liquid Glass iOS Wireframe</title>
+
+		<!-- Tailwind via CDN for quick prototyping/wireframing -->
+		<script src="https://cdn.tailwindcss.com"></script>
+
+		<style>
+			/*
+				Design tokens pulled from the selected Figma frame.
+				Keeping them in CSS variables makes future theming easier.
+			*/
+			:root {
+				--ios-gray-100: #f8f9fa;
+				--ios-gray-300: #c8ccd1;
+				--ios-gray-500: #72777d;
+				--ios-gray-600: #54595d;
+				--ios-gray-700: #202122;
+				--ios-white: #ffffff;
+				--ios-progressive: #3366cc;
+			}
+
+			/* Soft page background to support glass contrast */
+			body {
+				min-height: 100dvh;
+				background: radial-gradient(circle at 20% -10%, #ffffff 0%, #f0f1f3 45%, #e8eaee 100%);
+				color: var(--ios-gray-700);
+				font-family: "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+			}
+
+			/* Reusable liquid-glass style used for top and bottom bars */
+			.liquid-glass {
+				background: rgba(255, 255, 255, 0.56);
+				border: 1px solid rgba(255, 255, 255, 0.7);
+				box-shadow: 0 10px 24px rgba(32, 33, 34, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+				backdrop-filter: blur(18px) saturate(140%);
+				-webkit-backdrop-filter: blur(18px) saturate(140%);
+			}
+
+			/* Dock animation: bottom toolbar nests into the tab bar while scrolling. */
+			.toolbar-dockable {
+				transform-origin: center bottom;
+				transition: transform 280ms ease, opacity 280ms ease;
+			}
+
+			.toolbar-dockable.is-nested {
+				transform: translateY(71px);
+				opacity: 1;
+				pointer-events: none;
+			}
+
+			.toolbar-dockable.is-nested.is-searching {
+				transform: translateY(61px);
+				pointer-events: auto;
+			}
+
+			#bottom-toolbar-nav {
+				transition: width 280ms ease, height 280ms ease;
+			}
+
+			.toolbar-dockable.is-nested #bottom-toolbar-nav {
+				width: 72%;
+				height: 48px;
+				margin-left: auto;
+				margin-right: auto;
+			}
+
+			.toolbar-dockable.is-nested.is-searching #bottom-toolbar-nav {
+				width: 100%;
+			}
+
+			#bottom-toolbar-stack {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				gap: 10px;
+			}
+
+			/* Inline search mode: place the search field in the tab-bar slot. */
+			#bottom-toolbar-region.is-searching-inline {
+				bottom: 20px;
+				z-index: 45;
+				transform: none;
+			}
+
+			#bottom-toolbar-region.is-searching-inline #bottom-toolbar-stack {
+				gap: 10px;
+			}
+
+			#bottom-toolbar-region.is-searching-inline #compact-search-panel {
+				max-height: 56px;
+				opacity: 1;
+				transform: translateY(0) scaleX(1);
+				pointer-events: auto;
+			}
+
+			#compact-search-panel {
+				flex: 1 1 0;
+				min-width: 0;
+				width: auto;
+				margin-left: 0;
+				margin-right: 0;
+				max-height: 0;
+				overflow: hidden;
+				opacity: 0;
+				transform: translateY(10px) scaleX(0.86);
+				transform-origin: right center;
+				pointer-events: none;
+				transition: max-height 280ms ease, opacity 220ms ease, transform 280ms ease;
+			}
+
+			#bottom-toolbar-region.is-searching #compact-search-panel {
+				max-height: 56px;
+				opacity: 1;
+				transform: translateY(0) scaleX(1);
+				pointer-events: auto;
+			}
+
+			/* Tab bar compaction: keep Explore + Search, collapse other tabs smoothly. */
+			#tab-buttons-group {
+				transition: width 320ms ease, flex-basis 320ms ease, transform 320ms ease;
+			}
+
+			#tab-buttons-group > button {
+				flex: 1 1 0;
+				min-width: 0;
+			}
+
+			#explore-tab-button,
+			#search-tab-button {
+				transition: width 300ms ease, height 300ms ease, flex-basis 300ms ease, transform 300ms ease, opacity 220ms ease, margin 280ms ease;
+			}
+
+			#search-tab-button {
+				transform-origin: center center;
+				overflow: hidden;
+			}
+
+			#bottom-toolbar-region.is-searching + #tab-bar #search-tab-button {
+				width: 0;
+				opacity: 0;
+				margin-left: -8px;
+				transform: scale(0.7);
+				pointer-events: none;
+			}
+
+			.tab-item-compactable {
+				transition: max-width 280ms ease, opacity 220ms ease, transform 280ms ease, margin 280ms ease, padding 280ms ease;
+				opacity: 1;
+				transform: translateX(0);
+				overflow: hidden;
+			}
+
+			.tabbar-is-compact #tab-buttons-group {
+				flex: 0 0 48px;
+				width: 48px;
+				min-width: 48px;
+				height: 48px;
+				max-height: 48px;
+				align-items: center;
+				justify-content: center;
+			}
+
+			.tabbar-is-compact #explore-tab-button {
+				flex: 0 0 48px;
+				width: 48px;
+				height: 48px;
+				padding-left: 0;
+				padding-right: 0;
+				gap: 0;
+				display: grid;
+				place-items: center;
+			}
+
+			.tabbar-is-compact #search-tab-button {
+				width: 48px;
+				height: 48px;
+			}
+
+			.tabbar-is-compact #explore-tab-button span {
+				position: absolute;
+				opacity: 0;
+				transform: translateY(4px);
+				width: auto;
+				pointer-events: none;
+			}
+
+			.tabbar-is-compact #explore-tab-button img {
+				margin: 0;
+			}
+
+			#explore-tab-button span {
+				transition: opacity 180ms ease, transform 220ms ease;
+			}
+
+			.tabbar-is-compact .tab-item-compactable {
+				max-width: 0;
+				opacity: 0;
+				margin: 0;
+				padding-left: 0;
+				padding-right: 0;
+				transform: translateX(10px);
+				pointer-events: none;
+			}
+
+			/*
+				Soft scroll-edge effect (web equivalent of iOS liquid-glass edge behavior).
+				These sticky layers stay at the scroll boundaries where content underlaps UI.
+			*/
+			.scroll-edge-soft-top,
+			.scroll-edge-soft-bottom {
+				position: sticky;
+				left: 0;
+				right: 0;
+				height: 108px;
+				z-index: 10;
+				pointer-events: none;
+				backdrop-filter: blur(8px) saturate(120%);
+				-webkit-backdrop-filter: blur(8px) saturate(120%);
+			}
+
+			.scroll-edge-soft-top {
+				height: 78px;
+				top: 0;
+				margin-bottom: -78px;
+				background: linear-gradient(to bottom, rgba(248, 249, 250, 0.22) 0%, rgba(248, 249, 250, 0.08) 55%, rgba(248, 249, 250, 0) 100%);
+				mask-image: linear-gradient(to bottom, #000 0%, #000 60%, transparent 100%);
+				-webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 60%, transparent 100%);
+			}
+
+			.scroll-edge-soft-bottom {
+				bottom: 0;
+				margin-top: -78px;
+				background: linear-gradient(to top, rgba(248, 249, 250, 0.22) 0%, rgba(248, 249, 250, 0.08) 55%, rgba(248, 249, 250, 0) 100%);
+				mask-image: linear-gradient(to top, #000 0%, #000 60%, transparent 100%);
+				-webkit-mask-image: linear-gradient(to top, #000 0%, #000 60%, transparent 100%);
+			}
+
+			/* Prevent sideways scrolling from full-article HTML content. */
+			#wiki-article,
+			#wiki-body {
+				overflow-x: hidden;
+			}
+
+			#wiki-body * {
+				max-width: 100%;
+				box-sizing: border-box;
+				overflow-wrap: anywhere;
+			}
+
+			#wiki-body table {
+				width: 100% !important;
+				table-layout: fixed;
+			}
+
+			/* ── Search history view ─────────────────────────────── */
+			#search-nav-row {
+				display: none;
+			}
+
+			body.search-view-active #primary-nav-row {
+				display: none;
+			}
+
+			body.search-view-active #search-nav-row {
+				display: flex;
+			}
+
+			/* Hide title and top-right buttons when search field is focused/typing */
+			body.search-typing #search-nav-row h1,
+			body.search-typing #search-nav-row .liquid-glass {
+				display: none;
+			}
+
+			/* Close button next to search field — only visible when typing */
+			#search-close-btn {
+				display: none;
+				flex-shrink: 0;
+			}
+
+			body.search-typing #search-close-btn {
+				display: grid;
+			}
+
+			#search-field-row {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				width: 80%;
+				margin-left: auto;
+				margin-right: 0;
+			}
+
+			body.search-view-active #wiki-article {
+				display: none;
+			}
+
+			body.search-view-active #search-history-screen {
+				display: block;
+			}
+
+			/* Hide the toolbar pill — only the search field shows in search view */
+			body.search-view-active #bottom-toolbar-nav {
+				display: none;
+			}
+
+			#search-history-screen {
+				display: none;
+			}
+
+			.history-entry:last-child {
+				border-bottom: none;
+			}
+		</style>
+	</head>
+
+	<body>
+		<!--
+			PHONE FRAME
+			- Fixed iPhone-like aspect for wireframe consistency.
+			- Overflow is clipped so glass bars and hero image follow rounded corners.
+		-->
+		<main class="relative h-[100dvh] w-full overflow-hidden bg-[var(--ios-gray-100)]" data-node-id="1:2461">
+			<!-- Inner page uses absolute positioning so top and bottom bars can overlay content. -->
+			<section class="absolute inset-0">
+				<!--
+					TOP BAR REGION
+					- Includes status row and nav controls.
+					- Glass container suggests floating/translucent iOS surface.
+				-->
+				<header class="absolute inset-x-0 top-0 z-20 rounded-b-[28px] px-4 pb-3 pt-3">
+
+					<!-- Primary navigation row -->
+					<div id="primary-nav-row" class="relative mb-3 flex items-center justify-between transition-all duration-300 ease-out">
+						<button
+							class="liquid-glass relative flex h-[44px] items-center justify-center gap-2 rounded-[296px] px-4 text-[17px] font-medium text-[#404040]"
+							aria-label="Back"
+							data-node-id="I1:2463;6046:16030;5553:35135"
+						>
+							<span aria-hidden="true" class="inline-flex h-4 w-3 items-center justify-center">
+								<img src="svg-icons/chevron-left.svg" alt="" aria-hidden="true" class="h-[16.98px] w-[10.61px]" />
+							</span>
+					
+						</button>
+
+						<button
+							class="liquid-glass absolute left-1/2 top-1/2 z-10 flex size-[44px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[296px]"
+							aria-label="Wikipedia logo"
+							data-node-id="I1:2463;6248:24624"
+						>
+							<div class="relative shrink-0" data-node-id="I1:2463;6248:24626">
+								<img src="svg-icons/w-logo.svg" alt="" aria-hidden="true" class="h-[36px] w-[36px]" />
+							</div>
+						</button>
+
+						<div
+							class="liquid-glass content-stretch relative flex h-[44px] items-center gap-[12px] rounded-[296px] px-[4px]"
+							data-node-id="I1:2463;6046:16030;5553:33055"
+							data-name="_Buttons - Top"
+
+							
+						>
+
+						<button
+								class="relative grid size-[36px] place-items-center rounded-[100px] text-[#404040]"
+								aria-label="Tabs"
+								data-node-id="I1:2463;6046:16030;5553:33055;5432:23131"
+							>
+								<img src="svg-icons/square-on-square.svg" alt="" aria-hidden="true" class="h-[19px] w-[19px]" />
+							</button>
+
+							<button
+								class="relative grid size-[36px] place-items-center rounded-[100px] text-[#404040]"
+								aria-label="Account"
+								data-node-id="I1:2463;6046:16030;5553:33055;5432:23132"
+							>
+							<img src="svg-icons/person-crop-circle.svg" alt="" aria-hidden="true" class="h-[19px] w-[19px]" />
+							</button>
+						</div>
+					</div>
+
+					<!-- Search view nav row (shown instead of primary-nav-row in search mode) -->
+					<div id="search-nav-row" class="relative mb-3 items-center justify-between">
+						<h1 class="text-[30px] font-bold leading-tight tracking-tight text-[var(--ios-gray-700)]">Search</h1>
+						<div class="liquid-glass flex h-[44px] items-center gap-[4px] rounded-[296px] px-[4px]">
+							<button id="clear-history-btn" class="relative px-3 text-[17px] font-medium text-[#404040]" aria-label="Clear history">Clear</button>
+							<button class="relative grid size-[36px] place-items-center rounded-[100px] text-[#404040]" aria-label="Tabs">
+								<img src="svg-icons/square-on-square.svg" alt="" aria-hidden="true" class="h-[19px] w-[19px]" />
+							</button>
+							<button class="relative grid size-[36px] place-items-center rounded-[100px] text-[#404040]" aria-label="Account">
+								<img src="svg-icons/person-crop-circle.svg" alt="" aria-hidden="true" class="h-[19px] w-[19px]" />
+							</button>
+						</div>
+					</div>
+
+				</header>
+
+				<!--
+					SCROLL CONTENT REGION
+					- Starts below top bar.
+					- Leaves space at bottom so content is still readable above bottom toolbar.
+				-->
+				<article id="wiki-article" class="relative h-full overflow-y-auto">
+					<div class="scroll-edge-soft-top" aria-hidden="true"></div>
+					<div class="pb-[190px] pt-20">
+
+					<!-- API image slot -->
+					<div id="wiki-hero" class="h-[230px] w-full border-y border-[var(--ios-gray-300)] bg-[var(--ios-gray-100)] bg-cover bg-center"></div>
+
+					<!-- API title + description -->
+					<section class="border-b border-[var(--ios-gray-300)] bg-[var(--ios-gray-100)] px-4 py-3">
+						<h1
+							id="wiki-title"
+							class="mb-1 text-[27px] font-normal leading-[35px] text-[var(--ios-gray-700)]"
+							style="font-family: Georgia, 'Times New Roman', serif"
+							data-node-id="1:1309"
+						>
+							Loading...
+						</h1>
+						<p
+							id="wiki-description"
+							class="max-w-[320px] text-[14px] font-normal leading-[19px] tracking-[-0.1px] text-[var(--ios-gray-500)]"
+							style="font-family: 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif"
+							data-node-id="1:1311"
+						>
+							Fetching article summary...
+						</p>
+						<div class="mt-3 h-px w-16 bg-[var(--ios-gray-300)]"></div>
+					</section>
+
+					<!-- API extract text -->
+					<section
+						id="wiki-body"
+						class="space-y-4 px-4 py-4"
+						style="color: var(--iOS-Colors-color-gray700, #202122); font-feature-settings: 'liga' off, 'clig' off; font-family: 'SF Pro Text', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; line-height: 26px; letter-spacing: -0.26px;"
+					>
+						<p>Loading article content...</p>
+					</section>
+					</div>
+
+					<div class="scroll-edge-soft-bottom" aria-hidden="true"></div>
+				</article>
+
+				<!-- ── Search history screen ─────────────────────────── -->
+				<article id="search-history-screen" class="absolute inset-0 overflow-y-auto bg-[var(--ios-gray-100)]">
+					<div class="pb-[190px] pt-4">
+						<div class="px-4 pt-1 pb-3">
+							<h2 class="text-[22px] font-bold text-[var(--ios-gray-700)]">History</h2>
+						</div>
+						<div id="search-history-list" class="px-4">
+							<p class="text-[15px] text-[var(--ios-gray-500)]">No recent searches.</p>
+						</div>
+					</div>
+					<div class="scroll-edge-soft-bottom" aria-hidden="true"></div>
+				</article>
+
+				<!--
+					BOTTOM TOOLBAR REGION
+					- Floating glass pill with icon placeholders.
+					- Left action kept separate to mimic split controls.
+				-->
+				<footer id="bottom-toolbar-region" class="toolbar-dockable absolute inset-x-0 bottom-[78px] z-30 px-[25px] pb-2">
+					<div id="bottom-toolbar-stack">
+						<nav id="bottom-toolbar-nav" class="liquid-glass ml-auto flex h-[44px] w-full items-center justify-between rounded-full px-3 text-xs font-semibold text-[var(--ios-gray-700)]" aria-label="Bottom toolbar">
+							<button aria-label="Save"><img src="svg-icons/list-bullet.svg" alt="" aria-hidden="true" class="h-[36px] w-[36px]" /></button>
+							<button aria-label="Save"><img src="svg-icons/language-icon.svg" alt="" aria-hidden="true" class="h-[36px] w-[36px]" /></button>
+							<button aria-label="Search in page"><img src="svg-icons/bookmark.svg" alt="" aria-hidden="true" class="h-[36px] w-[36px]" /></button>
+							<button aria-label="Share"><img src="svg-icons/Find-in-page-icon.svg" alt="" aria-hidden="true" class="h-[36px] w-[36px]" /></button>
+							<button aria-label="More"><img src="svg-icons/resize-icon.svg" alt="" aria-hidden="true" class="h-[36px] w-[36px]" /></button>
+							<button aria-label="More"><img src="svg-icons/more-icon.svg" alt="" aria-hidden="true" class="h-[36px] w-[36px]" /></button>
+						</nav>
+
+						<!-- Search component extracted from index.html -->
+						<div id="search-field-row">
+						<label
+							id="compact-search-panel"
+							for="wiki-search"
+							class="liquid-glass relative flex h-[48px] items-center gap-[4px] rounded-[296px] border border-white/70 pl-[11px] pr-[10px] text-[var(--ios-gray-500)]"
+							data-node-id="I1:2463;6046:16138"
+							data-name="Search Field"
+						>
+							<span aria-hidden="true" class="grid h-[22px] w-[22px] place-items-center text-[#8c8c8c]">
+								<svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+									<circle cx="7.2" cy="7.2" r="5.2" stroke="currentColor" stroke-width="1.6" />
+									<path d="M11.2 11.2L14.8 14.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+								</svg>
+							</span>
+							<input
+								id="wiki-search"
+								type="text"
+								placeholder="Search Wikipedia"
+								aria-label="Search Wikipedia"
+								enterkeyhint="search"
+								autocapitalize="none"
+								autocomplete="off"
+								spellcheck="false"
+								data-form-type="other"
+								class="w-full bg-transparent text-[17px] font-normal tracking-tight text-[#8c8c8c] placeholder:text-[#8c8c8c] outline-none"
+							/>
+							<button
+								type="button"
+								aria-label="Voice search"
+								class="grid h-[22px] w-[22px] place-items-center text-[#999999]"
+							>
+								<svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+									<rect x="4" y="1" width="6" height="10" rx="3" stroke="currentColor" stroke-width="1.4" />
+									<path d="M2 8.5C2 11.3 4.1 13.5 7 13.5C9.9 13.5 12 11.3 12 8.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+									<path d="M7 13.5V16.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+									<path d="M5 16.5H9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
+								</svg>
+							</button>
+						</label>
+						<button
+							id="search-close-btn"
+							type="button"
+							aria-label="Close search"
+							class="liquid-glass grid h-[48px] w-[48px] shrink-0 place-items-center rounded-full text-[var(--ios-gray-700)]"
+						>
+							<svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+								<path d="M1.5 1.5L11.5 11.5M11.5 1.5L1.5 11.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+							</svg>
+						</button>
+						</div><!-- /search-field-row -->
+				</div><!-- /bottom-toolbar-stack -->
+				</footer>
+				<!--
+					TAB BAR
+					iOS tab bar with liquid-glass material — sits at the very bottom of the screen.
+					Follows Apple HIG: https://developer.apple.com/design/human-interface-guidelines/tab-bars
+				-->
+				<nav id="tab-bar" class="absolute inset-x-0 bottom-5 z-40 flex h-[58px] min-h-[58px] max-h-[58px] items-center justify-between gap-4 overflow-visible px-[25px]" aria-label="Tab bar" data-node-id="6:1591">
+					<!-- Tab buttons group (Explore, Places, Saved, History) -->
+					<div id="tab-buttons-group" class="liquid-glass flex flex-1 items-center rounded-[296px] overflow-hidden">
+						<!-- Explore — active tab -->
+						<button id="explore-tab-button" class="relative flex h-[58px] flex-1 flex-col items-center justify-center gap-px rounded-[100px] px-2" aria-label="Explore" aria-current="page" data-node-id="I6:1591;5538:24541">
+							<div class="absolute inset-0 rounded-[100px] bg-[#ededed]"></div>
+							<img src="svg-icons/explore-tab-bar.svg" alt="" aria-hidden="true" class="relative h-6 w-6" />
+							<span class="relative text-[10px] font-semibold leading-[12px] tracking-[-0.1px] text-[#3366cc]">Explore</span>
+						</button>
+						<!-- Places -->
+						<button class="tab-item-compactable flex h-[58px] flex-1 flex-col items-center justify-center gap-px px-2" aria-label="Places" data-node-id="I6:1591;5538:24542">
+							<img src="svg-icons/places-tab-bar.svg" alt="" aria-hidden="true" class="h-6 w-6" />
+							<span class="text-[10px] font-medium leading-[12px] text-[#8c8c8c]">Places</span>
+						</button>
+						<!-- Saved -->
+						<button class="tab-item-compactable flex h-[58px] flex-1 flex-col items-center justify-center gap-px px-2" aria-label="Saved" data-node-id="I6:1591;5538:24543">
+							<img src="svg-icons/saved-tab-bar.svg" alt="" aria-hidden="true" class="h-6 w-6" />
+							<span class="text-[10px] font-medium leading-[12px] text-[#8c8c8c]">Saved</span>
+						</button>
+						<!-- History -->
+						<button class="tab-item-compactable flex h-[58px] flex-1 flex-col items-center justify-center gap-px px-2" aria-label="History" data-node-id="I6:1591;5538:24544">
+							<img src="svg-icons/history-tab-bar.svg" alt="" aria-hidden="true" class="h-6 w-6" />
+							<span class="text-[10px] font-medium leading-[12px] text-[#8c8c8c]">History</span>
+						</button>
+					</div>
+					<!-- Search button (separate pill) -->
+					<button id="search-tab-button" class="liquid-glass flex h-[58px] w-[58px] shrink-0 items-center justify-center rounded-full" aria-label="Search" data-node-id="I6:1591;5538:24536">
+						<img src="svg-icons/search-tab-bar.svg" alt="" aria-hidden="true" class="h-6 w-6" />
+					</button>
+				</nav>
+			</section>
+		</main>
+
+		<script>
+			function normalizeWikipediaUrl(rawUrl) {
+				if (!rawUrl) {
+					return rawUrl;
+				}
+
+				if (rawUrl.startsWith("//")) {
+					return `https:${rawUrl}`;
+				}
+
+				if (rawUrl.startsWith("./")) {
+					return `https://en.wikipedia.org/wiki/${rawUrl.slice(2)}`;
+				}
+
+				if (rawUrl.startsWith("/")) {
+					return `https://en.wikipedia.org${rawUrl}`;
+				}
+
+				return rawUrl;
+			}
+
+			function extractWikipediaArticleHtml(htmlText) {
+				const parser = new DOMParser();
+				const htmlDoc = parser.parseFromString(htmlText, "text/html");
+				const root = htmlDoc.body || htmlDoc;
+
+				root.querySelectorAll("script, style, .mw-editsection").forEach((el) => el.remove());
+
+				root.querySelectorAll("a[href]").forEach((link) => {
+					const href = link.getAttribute("href");
+					const normalizedHref = normalizeWikipediaUrl(href);
+					if (normalizedHref) {
+						link.setAttribute("href", normalizedHref);
+					}
+					link.setAttribute("target", "_blank");
+					link.setAttribute("rel", "noopener noreferrer");
+				});
+
+				root.querySelectorAll("img[src]").forEach((img) => {
+					const src = img.getAttribute("src");
+					const normalizedSrc = normalizeWikipediaUrl(src);
+					if (normalizedSrc) {
+						img.setAttribute("src", normalizedSrc);
+					}
+					img.setAttribute("loading", "lazy");
+					img.style.maxWidth = "100%";
+					img.style.height = "auto";
+				});
+
+				return root.innerHTML;
+			}
+
+			async function resolveWikipediaTopic(query) {
+				const trimmedQuery = query.trim();
+				if (!trimmedQuery) {
+					return "Cactus";
+				}
+
+				const searchEndpoint = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(trimmedQuery)}&utf8=1&format=json&origin=*`;
+
+				try {
+					const response = await fetch(searchEndpoint, { headers: { accept: "application/json" } });
+					if (!response.ok) {
+						return trimmedQuery;
+					}
+
+					const data = await response.json();
+					return data?.query?.search?.[0]?.title || trimmedQuery;
+				} catch {
+					return trimmedQuery;
+				}
+			}
+
+			// Loads a Wikipedia summary via the REST API and injects it into the article region.
+			async function loadWikipediaSummary(topic) {
+				const safeTopic = encodeURIComponent(topic.trim() || "Cactus");
+				const summaryEndpoint = `https://en.wikipedia.org/api/rest_v1/page/summary/${safeTopic}`;
+				const htmlEndpoint = `https://en.wikipedia.org/api/rest_v1/page/html/${safeTopic}`;
+
+				const heroEl = document.getElementById("wiki-hero");
+				const titleEl = document.getElementById("wiki-title");
+				const descEl = document.getElementById("wiki-description");
+				const bodyEl = document.getElementById("wiki-body");
+
+				titleEl.textContent = "Loading...";
+				descEl.textContent = "Fetching article summary...";
+				bodyEl.innerHTML = "<p>Loading article content...</p>";
+
+				try {
+					const [summaryResponse, htmlResponse] = await Promise.all([
+						fetch(summaryEndpoint, { headers: { accept: "application/json" } }),
+						fetch(htmlEndpoint, { headers: { accept: "text/html" } }),
+					]);
+
+					if (!summaryResponse.ok) {
+						throw new Error(`Wikipedia summary request failed with ${summaryResponse.status}`);
+					}
+
+					if (!htmlResponse.ok) {
+						throw new Error(`Wikipedia article HTML request failed with ${htmlResponse.status}`);
+					}
+
+					const [data, htmlText] = await Promise.all([summaryResponse.json(), htmlResponse.text()]);
+					const image = data.originalimage?.source || data.thumbnail?.source || null;
+
+					if (image) {
+						heroEl.style.backgroundImage = `url('${image}')`;
+						heroEl.style.backgroundColor = "";
+					} else {
+						heroEl.style.backgroundImage = "none";
+						heroEl.style.backgroundColor = "#c8ccd1";
+					}
+					titleEl.textContent = data.title || "Cactus";
+					descEl.textContent = data.description || "Wikipedia article";
+
+					const articleHtml = extractWikipediaArticleHtml(htmlText);
+					bodyEl.innerHTML = articleHtml || "<p>No article content available for this page.</p>";
+				} catch (error) {
+					titleEl.textContent = "Unable to load article";
+					descEl.textContent = "Please try again.";
+					bodyEl.innerHTML = `<p>${error.message}</p>`;
+					heroEl.style.backgroundImage = "none";
+					heroEl.style.backgroundColor = "#c8ccd1";
+				}
+			}
+
+			const articleEl = document.getElementById("wiki-article");
+			const primaryNavRowEl = document.getElementById("primary-nav-row");
+			const bottomToolbarEl = document.getElementById("bottom-toolbar-region");
+			const tabBarEl = document.getElementById("tab-bar");
+			const searchTabButtonEl = document.getElementById("search-tab-button");
+			const wikiSearchInputEl = document.getElementById("wiki-search");
+			const compactSearchPanelEl = document.getElementById("compact-search-panel");
+			let activateSearchTypingMode = () => false;
+			let lastScrollTop = 0;
+			let wasTabBarCompactBeforeSearch = false;
+			let wasToolbarNestedBeforeSearch = false;
+
+			// ── Search history ───────────────────────────────────────
+			let searchHistory = [];
+			let predictedSearchResults = [];
+			let predictionRequestToken = 0;
+			let predictionDebounceTimer = null;
+			try { searchHistory = JSON.parse(sessionStorage.getItem("wikiSearchHistory") || "[]"); } catch (_) {}
+
+			function saveSearchHistory() {
+				try { sessionStorage.setItem("wikiSearchHistory", JSON.stringify(searchHistory)); } catch (_) {}
+			}
+
+			function addToSearchHistory(query, title, description, thumbnail) {
+				searchHistory = searchHistory.filter((e) => e.query !== query);
+				searchHistory.unshift({ query, title, description, thumbnail, timestamp: Date.now() });
+				if (searchHistory.length > 50) searchHistory = searchHistory.slice(0, 50);
+				saveSearchHistory();
+			}
+
+			function formatHistoryDateLabel(timestamp) {
+				const now = new Date();
+				const d = new Date(timestamp);
+				const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+				const entry = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+				const diff = Math.round((today - entry) / 86400000);
+				if (diff === 0) return "Today";
+				if (diff === 1) return "Yesterday";
+				return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+			}
+
+			async function fetchWikipediaPredictions(query) {
+				const trimmedQuery = query.trim();
+				if (!trimmedQuery) {
+					return [];
+				}
+
+				const endpoint = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(trimmedQuery)}&gsrlimit=8&gsrprop=snippet&prop=pageimages&piprop=thumbnail&pithumbsize=104&pilimit=8&utf8=1&format=json&formatversion=2&origin=*`;
+				const response = await fetch(endpoint, { headers: { accept: "application/json" } });
+				if (!response.ok) {
+					throw new Error(`Wikipedia prediction request failed with ${response.status}`);
+				}
+
+				const data = await response.json();
+				const pages = data?.query?.pages || [];
+				const results = [...pages].sort((a, b) => (a.index || 0) - (b.index || 0));
+				return results.map((entry) => {
+					const plainSnippet = (entry.snippet || "")
+						.replace(/<[^>]+>/g, "")
+						.replace(/&quot;/g, '"')
+						.replace(/&#39;/g, "'")
+						.replace(/&amp;/g, "&")
+						.trim();
+					return {
+						title: entry.title,
+						description: plainSnippet,
+						thumbnail: entry.thumbnail?.source || null,
+					};
+				});
+			}
+
+			function requestSearchPredictions(query) {
+				if (predictionDebounceTimer) {
+					clearTimeout(predictionDebounceTimer);
+				}
+
+				const trimmedQuery = query.trim();
+				if (!trimmedQuery) {
+					predictedSearchResults = [];
+					if (document.body.classList.contains("search-typing")) {
+						renderSearchHistory(true);
+					}
+					return;
+				}
+
+				predictionDebounceTimer = setTimeout(async () => {
+					const token = ++predictionRequestToken;
+					try {
+						const results = await fetchWikipediaPredictions(trimmedQuery);
+						if (token !== predictionRequestToken) {
+							return;
+						}
+						predictedSearchResults = results;
+					} catch {
+						if (token !== predictionRequestToken) {
+							return;
+						}
+						predictedSearchResults = [];
+					}
+
+					if (document.body.classList.contains("search-typing")) {
+						renderSearchHistory(true);
+					}
+				}, 180);
+			}
+
+			async function openArticleFromSearchSelection(topic, rawQuery = "", fallbackDescription = "") {
+				const normalizedTopic = (topic || "").trim();
+				if (!normalizedTopic) {
+					return;
+				}
+
+				if (wikiSearchInputEl) {
+					wikiSearchInputEl.value = "";
+				}
+				predictedSearchResults = [];
+				setSearchViewActive(false);
+				await loadWikipediaSummary(normalizedTopic);
+
+				const titleEl = document.getElementById("wiki-title");
+				const descEl = document.getElementById("wiki-description");
+				const heroEl = document.getElementById("wiki-hero");
+				const bgMatch = (heroEl?.style.backgroundImage || "").match(/url\(['"]?([^'"]+)['"]?\)/);
+
+				addToSearchHistory(
+					rawQuery || normalizedTopic,
+					titleEl?.textContent || normalizedTopic,
+					descEl?.textContent || fallbackDescription || "",
+					bgMatch ? bgMatch[1] : null
+				);
+
+				if (articleEl) {
+					articleEl.scrollTo({ top: 0, behavior: "smooth" });
+				}
+
+				if (primaryNavRowEl) {
+					primaryNavRowEl.classList.remove("-translate-y-4", "opacity-0", "pointer-events-none");
+				}
+
+				lastScrollTop = 0;
+			}
+
+			function renderSearchHistory(queryMode = false) {
+				const listEl = document.getElementById("search-history-list");
+				const headingEl = document.querySelector("#search-history-screen h2");
+				if (!listEl) return;
+
+				if (headingEl) {
+					headingEl.textContent = "History";
+					headingEl.style.display = "";
+				}
+
+				if (queryMode) {
+					const currentQuery = wikiSearchInputEl ? wikiSearchInputEl.value.trim() : "";
+					if (headingEl && currentQuery) {
+						headingEl.style.display = "none";
+					}
+					if (currentQuery) {
+						if (predictedSearchResults.length === 0) {
+							listEl.innerHTML = '<p class="text-[15px] text-[var(--ios-gray-500)]">No matching Wikipedia articles.</p>';
+							return;
+						}
+
+						let html = "";
+						for (const result of predictedSearchResults) {
+							const safeTitle = result.title.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+							const safeDescription = (result.description || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+							const thumb = result.thumbnail
+								? `<img src="${result.thumbnail}" alt="" class="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" loading="lazy" />`
+								: `<div class="h-[52px] w-[52px] shrink-0 rounded-[10px] bg-[var(--ios-gray-300)]"></div>`;
+							html += `<button class="prediction-entry flex w-full items-center gap-3 border-b border-[var(--ios-gray-300)] py-3 text-left" data-title="${safeTitle}" data-description="${safeDescription}">
+								<div class="min-w-0 flex-1">
+									<p class="text-[16px] font-medium leading-snug text-[var(--ios-gray-700)]">${result.title}</p>
+									<p class="truncate text-[13px] text-[var(--ios-gray-500)]">${result.description || "Wikipedia article"}</p>
+								</div>
+								${thumb}
+							</button>`;
+						}
+						listEl.innerHTML = html;
+						listEl.querySelectorAll(".prediction-entry").forEach((btn) => {
+							btn.addEventListener("click", () => {
+								const title = btn.getAttribute("data-title") || "";
+								const description = btn.getAttribute("data-description") || "";
+								const typedQuery = wikiSearchInputEl ? wikiSearchInputEl.value.trim() : "";
+								void openArticleFromSearchSelection(title, typedQuery || title, description);
+							});
+						});
+						return;
+					}
+				}
+
+				if (searchHistory.length === 0) {
+					listEl.innerHTML = '<p class="text-[15px] text-[var(--ios-gray-500)]">No recent searches.</p>';
+					return;
+				} else {
+					// Article-card mode — grouped by date
+					const groups = [];
+					const groupMap = {};
+					for (const entry of searchHistory) {
+						const label = formatHistoryDateLabel(entry.timestamp);
+						if (!groupMap[label]) { groupMap[label] = []; groups.push({ label, entries: groupMap[label] }); }
+						groupMap[label].push(entry);
+					}
+					let html = "";
+					for (const group of groups) {
+						html += `<div class="mb-2 mt-4">
+							<p class="mb-1 text-[13px] font-semibold uppercase tracking-wide text-[var(--ios-gray-500)]">${group.label}</p>`;
+						for (const entry of group.entries) {
+							const safeTitle = (entry.title || entry.query).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+							const thumb = entry.thumbnail
+								? `<img src="${entry.thumbnail}" alt="" class="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" loading="lazy" />`
+								: `<div class="h-[52px] w-[52px] shrink-0 rounded-[10px] bg-[var(--ios-gray-300)]"></div>`;
+							html += `<button class="history-entry flex w-full items-center gap-3 border-b border-[var(--ios-gray-300)] py-3 text-left" data-title="${safeTitle}">
+								<div class="min-w-0 flex-1">
+									<p class="text-[16px] font-medium leading-snug text-[var(--ios-gray-700)]">${entry.title || entry.query}</p>
+									<p class="truncate text-[13px] text-[var(--ios-gray-500)]">${entry.description || ""}</p>
+								</div>
+								${thumb}
+							</button>`;
+						}
+						html += `</div>`;
+					}
+					listEl.innerHTML = html;
+					listEl.querySelectorAll(".history-entry").forEach((btn) => {
+						btn.addEventListener("click", () => {
+							const title = btn.getAttribute("data-title");
+							setSearchViewActive(false);
+							void loadWikipediaSummary(title);
+							if (articleEl) articleEl.scrollTo({ top: 0, behavior: "smooth" });
+							lastScrollTop = 0;
+						});
+					});
+				}
+			}
+
+			function setSearchViewActive(isActive) {
+				document.body.classList.toggle("search-view-active", isActive);
+				if (!isActive) {
+					document.body.classList.remove("search-typing");
+					predictedSearchResults = [];
+					predictionRequestToken += 1;
+					if (predictionDebounceTimer) {
+						clearTimeout(predictionDebounceTimer);
+					}
+				}
+				if (wikiSearchInputEl) {
+					if (isActive) {
+						wikiSearchInputEl.removeAttribute("readonly");
+						wikiSearchInputEl.readOnly = false;
+					} else {
+						wikiSearchInputEl.removeAttribute("readonly");
+						wikiSearchInputEl.readOnly = false;
+						wikiSearchInputEl.blur();
+					}
+				}
+				setCompactSearchOpen(isActive, { skipFocus: !isActive });
+				if (isActive) {
+					document.body.classList.add("search-typing");
+					renderSearchHistory(true);
+					requestSearchPredictions(wikiSearchInputEl ? wikiSearchInputEl.value : "");
+				}
+			}
+			// ────────────────────────────────────────────────────────
+
+			function focusCompactSearchInput(selectText = true) {
+				if (!wikiSearchInputEl) {
+					return;
+				}
+
+				wikiSearchInputEl.focus({ preventScroll: true });
+
+				if (selectText) {
+					const inputLength = wikiSearchInputEl.value.length;
+					wikiSearchInputEl.setSelectionRange(inputLength, inputLength);
+				}
+			}
+
+			function setCompactSearchOpen(isOpen, { skipFocus = false } = {}) {
+				if (!bottomToolbarEl) {
+					return;
+				}
+
+				if (isOpen) {
+					wasTabBarCompactBeforeSearch = Boolean(tabBarEl && tabBarEl.classList.contains("tabbar-is-compact"));
+					wasToolbarNestedBeforeSearch = bottomToolbarEl.classList.contains("is-nested");
+				}
+
+				bottomToolbarEl.classList.toggle("is-searching", isOpen);
+				bottomToolbarEl.classList.toggle("is-searching-inline", isOpen);
+
+				if (tabBarEl) {
+					if (isOpen) {
+						tabBarEl.classList.add("tabbar-is-compact");
+					} else {
+						tabBarEl.classList.toggle("tabbar-is-compact", wasTabBarCompactBeforeSearch);
+					}
+				}
+
+				if (isOpen) {
+					bottomToolbarEl.classList.add("is-nested");
+				} else {
+					bottomToolbarEl.classList.toggle("is-nested", wasToolbarNestedBeforeSearch);
+				}
+
+				if (isOpen && wikiSearchInputEl && !skipFocus) {
+					focusCompactSearchInput();
+					requestAnimationFrame(() => {
+						focusCompactSearchInput();
+					});
+					setTimeout(() => {
+						focusCompactSearchInput();
+					}, 180);
+				} else if (!isOpen && wikiSearchInputEl) {
+					wikiSearchInputEl.blur();
+				}
+			}
+
+			async function submitCompactSearch() {
+				if (!wikiSearchInputEl) {
+					return;
+				}
+
+				const query = wikiSearchInputEl.value.trim();
+				if (!query) {
+					return;
+				}
+
+				const resolvedTopic = await resolveWikipediaTopic(query);
+				wikiSearchInputEl.value = "";
+				setSearchViewActive(false);
+				await loadWikipediaSummary(resolvedTopic);
+
+				// Record the raw query + resolved article info into history
+				const titleEl = document.getElementById("wiki-title");
+				const descEl = document.getElementById("wiki-description");
+				const heroEl = document.getElementById("wiki-hero");
+				const bgMatch = (heroEl?.style.backgroundImage || "").match(/url\(['"]?([^'"]+)['"]?\)/);
+				addToSearchHistory(
+					query,
+					titleEl?.textContent || resolvedTopic,
+					descEl?.textContent || "",
+					bgMatch ? bgMatch[1] : null
+				);
+
+				if (articleEl) {
+					articleEl.scrollTo({ top: 0, behavior: "smooth" });
+				}
+
+				if (primaryNavRowEl) {
+					primaryNavRowEl.classList.remove("-translate-y-4", "opacity-0", "pointer-events-none");
+				}
+
+				lastScrollTop = 0;
+			}
+
+			const exploreTabButtonEl = document.getElementById("explore-tab-button");
+			if (exploreTabButtonEl) {
+				exploreTabButtonEl.addEventListener("click", () => {
+					if (bottomToolbarEl) {
+						bottomToolbarEl.classList.remove("is-nested", "is-searching", "is-searching-inline");
+					}
+					if (tabBarEl) {
+						tabBarEl.classList.remove("tabbar-is-compact");
+					}
+					if (primaryNavRowEl) {
+						primaryNavRowEl.classList.remove("-translate-y-4", "opacity-0", "pointer-events-none");
+					}
+					lastScrollTop = articleEl ? articleEl.scrollTop : 0;
+				});
+			}
+
+			if (searchTabButtonEl) {
+				searchTabButtonEl.addEventListener("click", (event) => {
+					if (!bottomToolbarEl) {
+						return;
+					}
+
+					event.preventDefault();
+					const isActive = document.body.classList.contains("search-view-active");
+					setSearchViewActive(!isActive);
+				});
+			}
+
+			const clearHistoryBtnEl = document.getElementById("clear-history-btn");
+			if (clearHistoryBtnEl) {
+				clearHistoryBtnEl.addEventListener("click", () => {
+					searchHistory = [];
+					saveSearchHistory();
+					renderSearchHistory();
+				});
+			}
+
+			const searchCloseBtnEl = document.getElementById("search-close-btn");
+			if (searchCloseBtnEl) {
+				searchCloseBtnEl.addEventListener("click", () => {
+					if (wikiSearchInputEl) wikiSearchInputEl.value = "";
+					setSearchViewActive(false);
+				});
+			}
+
+			if (compactSearchPanelEl) {
+				activateSearchTypingMode = () => {
+					if (!document.body.classList.contains("search-view-active")) {
+						return false;
+					}
+
+					if (!document.body.classList.contains("search-typing")) {
+						document.body.classList.add("search-typing");
+						renderSearchHistory(true);
+					}
+
+					if (wikiSearchInputEl) {
+						wikiSearchInputEl.readOnly = false;
+						wikiSearchInputEl.removeAttribute("readonly");
+						requestSearchPredictions(wikiSearchInputEl.value);
+					}
+
+					return true;
+				};
+
+				compactSearchPanelEl.addEventListener("pointerdown", () => {
+					const activated = activateSearchTypingMode();
+					if (activated && wikiSearchInputEl) {
+						wikiSearchInputEl.focus({ preventScroll: true });
+					}
+				});
+
+				compactSearchPanelEl.addEventListener("touchstart", () => {
+					const activated = activateSearchTypingMode();
+					if (activated && wikiSearchInputEl) {
+						wikiSearchInputEl.focus({ preventScroll: true });
+					}
+				}, { passive: true });
+
+				compactSearchPanelEl.addEventListener("click", (event) => {
+					// First direct tap in search view enters typing mode and triggers keyboard.
+					if (
+						document.body.classList.contains("search-view-active") &&
+						!document.body.classList.contains("search-typing")
+					) {
+						void activateSearchTypingMode();
+						if (wikiSearchInputEl) {
+							wikiSearchInputEl.focus({ preventScroll: true });
+							setTimeout(() => wikiSearchInputEl.focus({ preventScroll: true }), 0);
+							setTimeout(() => wikiSearchInputEl.focus({ preventScroll: true }), 120);
+						}
+						return;
+					}
+
+					if (document.body.classList.contains("search-view-active")) {
+						void activateSearchTypingMode();
+					}
+
+					focusCompactSearchInput(false);
+				});
+			}
+
+			if (wikiSearchInputEl) {
+				wikiSearchInputEl.addEventListener("focus", () => {
+					if (document.body.classList.contains("search-view-active")) {
+						void activateSearchTypingMode();
+					}
+				});
+
+				wikiSearchInputEl.addEventListener("input", () => {
+					if (!document.body.classList.contains("search-view-active")) {
+						return;
+					}
+
+					if (!document.body.classList.contains("search-typing")) {
+						void activateSearchTypingMode();
+					}
+
+					requestSearchPredictions(wikiSearchInputEl.value);
+				});
+
+				wikiSearchInputEl.addEventListener("keydown", (event) => {
+					if (event.key !== "Enter") {
+						return;
+					}
+
+					event.preventDefault();
+					void submitCompactSearch();
+				});
+
+				wikiSearchInputEl.addEventListener("search", () => {
+					if (!wikiSearchInputEl.value.trim()) {
+						return;
+					}
+
+					void submitCompactSearch();
+				});
+			}
+
+			if (compactSearchPanelEl) {
+				compactSearchPanelEl.addEventListener("click", (event) => {
+					const target = event.target;
+					if (!(target instanceof Element)) {
+						return;
+					}
+
+					if (target.closest('button[aria-label="Voice search"]')) {
+						void submitCompactSearch();
+					}
+				});
+			}
+
+			if (articleEl && primaryNavRowEl) {
+				articleEl.addEventListener("scroll", () => {
+					const currentScrollTop = articleEl.scrollTop;
+
+					if (currentScrollTop > lastScrollTop + 4) {
+						primaryNavRowEl.classList.add("-translate-y-4", "opacity-0", "pointer-events-none");
+						if (bottomToolbarEl) {
+							bottomToolbarEl.classList.add("is-nested");
+						}
+						if (tabBarEl) {
+							tabBarEl.classList.add("tabbar-is-compact");
+						}
+					} else if (currentScrollTop < lastScrollTop - 4) {
+						primaryNavRowEl.classList.remove("-translate-y-4", "opacity-0", "pointer-events-none");
+					}
+
+					const isSearching = Boolean(bottomToolbarEl && bottomToolbarEl.classList.contains("is-searching"));
+
+					if (currentScrollTop <= 2 && bottomToolbarEl && !isSearching) {
+						bottomToolbarEl.classList.remove("is-nested");
+						bottomToolbarEl.classList.remove("is-searching");
+						bottomToolbarEl.classList.remove("is-searching-inline");
+					}
+					if (currentScrollTop <= 2 && tabBarEl && !isSearching) {
+						tabBarEl.classList.remove("tabbar-is-compact");
+					}
+
+					lastScrollTop = Math.max(currentScrollTop, 0);
+				});
+			}
+
+			// iOS keyboard avoidance — keep toolbar above the software keyboard
+			(function () {
+				const vv = window.visualViewport;
+				if (!vv) return;
+
+				function applyKeyboardOffset() {
+					if (!bottomToolbarEl) return;
+					const keyboardHeight = window.innerHeight - vv.height - vv.offsetTop;
+					const isSearching = bottomToolbarEl.classList.contains("is-searching");
+					if (keyboardHeight > 50 && isSearching) {
+						// Use bottom offset instead of transform so CSS class transforms are unaffected
+						bottomToolbarEl.style.bottom = `${20 + Math.round(keyboardHeight)}px`;
+						if (tabBarEl) tabBarEl.style.bottom = `${20 + Math.round(keyboardHeight)}px`;
+					} else {
+						bottomToolbarEl.style.bottom = "";
+						if (tabBarEl) tabBarEl.style.bottom = "";
+					}
+				}
+
+				function clearKeyboardOffset() {
+					if (bottomToolbarEl) bottomToolbarEl.style.bottom = "";
+					if (tabBarEl) tabBarEl.style.bottom = "";
+				}
+
+				vv.addEventListener("resize", applyKeyboardOffset);
+				vv.addEventListener("scroll", applyKeyboardOffset);
+
+				// Wrap setCompactSearchOpen so closing always clears the offset
+				const _origSet = setCompactSearchOpen;
+				setCompactSearchOpen = function (isOpen, options) {
+					_origSet(isOpen, options);
+					if (!isOpen) clearKeyboardOffset();
+				};
+			})();
+
+			loadWikipediaSummary("Cactus");
+		</script>
+	</body>
+</html>
