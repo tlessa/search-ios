@@ -719,11 +719,30 @@
 
 			const searchFieldLabelEl = document.getElementById("search-field-label");
 			if (searchFieldLabelEl) {
+				// touchstart fires synchronously on iOS — only way to reliably trigger keyboard
+				searchFieldLabelEl.addEventListener("touchstart", (e) => {
+					if (!document.body.classList.contains("search-view-active")) return;
+					if (wikiSearchInputEl) {
+						wikiSearchInputEl.removeAttribute("readonly");
+						wikiSearchInputEl.readOnly = false;
+						wikiSearchInputEl.focus();
+					}
+					activateSearchTypingMode();
+				}, { passive: true });
 				searchFieldLabelEl.addEventListener("pointerdown", () => activateSearchTypingMode());
 				searchFieldLabelEl.addEventListener("click", () => {
 					activateSearchTypingMode();
 					if (wikiSearchInputEl) wikiSearchInputEl.focus({ preventScroll: true });
 				});
+			}
+			if (wikiSearchInputEl) {
+				wikiSearchInputEl.addEventListener("touchstart", (e) => {
+					if (!document.body.classList.contains("search-view-active")) return;
+					wikiSearchInputEl.removeAttribute("readonly");
+					wikiSearchInputEl.readOnly = false;
+					wikiSearchInputEl.focus();
+					activateSearchTypingMode();
+				}, { passive: true });
 			}
 
 			if (wikiSearchInputEl) {
