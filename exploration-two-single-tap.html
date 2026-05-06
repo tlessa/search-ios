@@ -257,6 +257,53 @@
 			}
 
 			/* ── Search history view ─────────────────────────────── */
+			#home-screen {
+				display: none;
+			}
+
+			body.home-view-active #home-screen {
+				display: block;
+			}
+
+			body.home-view-active #wiki-article,
+			body.home-view-active #app-header {
+				display: none;
+			}
+
+			#home-top-bar {
+				display: none;
+			}
+
+			body.home-view-active #home-top-bar {
+				display: flex;
+			}
+
+			body.search-view-active #home-top-bar {
+				display: none;
+			}
+
+			body.home-view-active:not(.search-view-active) #bottom-toolbar-region {
+				display: none;
+			}
+
+			body.search-view-active #home-screen {
+				display: none;
+			}
+
+			.home-surface-card {
+				background: #e5e5e5;
+				border: 1px solid rgba(32, 33, 34, 0.06);
+			}
+
+			.home-featured-card {
+				transition: transform 220ms ease, box-shadow 220ms ease;
+			}
+
+			.home-featured-card:active {
+				transform: scale(0.992);
+				box-shadow: 0 8px 24px rgba(32, 33, 34, 0.12);
+			}
+
 			#search-nav-row {
 				display: none;
 			}
@@ -269,9 +316,8 @@
 				display: flex;
 			}
 
-			/* Hide title and top-right buttons when search field is focused/typing */
-			body.search-typing #search-nav-row h1,
-			body.search-typing #search-nav-row .liquid-glass {
+			/* Hide title when search field is focused/typing */
+			body.search-typing #search-nav-row h1 {
 				display: none;
 			}
 
@@ -308,7 +354,8 @@
 				width: 100%;
 			}
 
-			body.search-view-active #wiki-article {
+			body.search-view-active #wiki-article,
+			body.search-view-active #home-screen {
 				display: none;
 			}
 
@@ -345,11 +392,12 @@
 					- Includes status row and nav controls.
 					- Glass container suggests floating/translucent iOS surface.
 				-->
-				<header class="absolute inset-x-0 top-0 z-20 rounded-b-[28px] px-4 pb-3 pt-3">
+				<header id="app-header" class="absolute inset-x-0 top-0 z-20 rounded-b-[28px] px-4 pb-3 pt-3">
 
 					<!-- Primary navigation row -->
 					<div id="primary-nav-row" class="relative mb-3 flex items-center justify-between transition-all duration-300 ease-out">
 						<button
+							id="article-back-btn"
 							class="liquid-glass relative flex h-[44px] items-center justify-center gap-2 rounded-[296px] px-4 text-[17px] font-medium text-[#404040]"
 							aria-label="Back"
 							data-node-id="I1:2463;6046:16030;5553:35135"
@@ -399,15 +447,6 @@
 					<!-- Search view nav row (shown instead of primary-nav-row in search mode) -->
 					<div id="search-nav-row" class="relative mb-3 items-center justify-between">
 						<h1 class="text-[30px] font-bold leading-tight tracking-tight text-[var(--ios-gray-700)]">Search</h1>
-						<div class="liquid-glass flex h-[44px] items-center gap-[4px] rounded-[296px] px-[4px]">
-							<button id="clear-history-btn" class="relative px-3 text-[17px] font-medium text-[#404040]" aria-label="Clear history">Clear</button>
-							<button class="relative grid size-[36px] place-items-center rounded-[100px] text-[#404040]" aria-label="Tabs">
-								<img src="svg-icons/square-on-square.svg" alt="" aria-hidden="true" class="h-[19px] w-[19px]" />
-							</button>
-							<button class="relative grid size-[36px] place-items-center rounded-[100px] text-[#404040]" aria-label="Account">
-								<img src="svg-icons/person-crop-circle.svg" alt="" aria-hidden="true" class="h-[19px] w-[19px]" />
-							</button>
-						</div>
 					</div>
 
 				</header>
@@ -417,6 +456,109 @@
 					- Starts below top bar.
 					- Leaves space at bottom so content is still readable above bottom toolbar.
 				-->
+				<!-- Home screen fixed top bar -->
+				<div id="home-top-bar" class="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 pt-3 pb-2">
+					<button class="liquid-glass flex size-[44px] items-center justify-center rounded-full" aria-label="Wikipedia">
+						<img src="svg-icons/w-logo.svg" alt="" aria-hidden="true" class="h-[36px] w-[36px]" />
+					</button>
+					<div class="liquid-glass flex h-[44px] items-center gap-[10px] rounded-[296px] px-[6px]">
+						<button class="grid size-[32px] place-items-center rounded-full" aria-label="Tabs">
+							<img src="svg-icons/square-on-square.svg" alt="" aria-hidden="true" class="h-[18px] w-[18px]" />
+						</button>
+						<button class="grid size-[32px] place-items-center rounded-full" aria-label="Account">
+							<img src="svg-icons/person-crop-circle.svg" alt="" aria-hidden="true" class="h-[18px] w-[18px]" />
+						</button>
+					</div>
+				</div>
+
+				<article id="home-screen" class="relative h-full overflow-y-auto">
+					<div class="pb-[128px] pt-[68px]">
+						<section class="px-5">
+							<div class="mb-3 flex items-center justify-between">
+								<div>
+									<p class="text-[28px] font-bold leading-[0.95] tracking-[-1.2px] text-[var(--ios-gray-700)]">Today</p>
+									<p class="mt-2 text-[15px] font-semibold leading-tight text-[var(--ios-gray-700)]">Featured article</p>
+									<p class="mt-2 text-[15px] leading-tight text-[var(--ios-gray-500)]">From English Wikipedia</p>
+								</div>
+								<button class="text-[28px] leading-none text-[var(--ios-gray-500)]" aria-label="More">⋮</button>
+							</div>
+
+							<button
+								id="featured-article-card"
+								type="button"
+								data-topic="Hurricane Joaquin"
+								data-description="Category 4 Atlantic hurricane in 2015"
+								class="home-featured-card block w-full overflow-hidden rounded-[20px] bg-white text-left shadow-md"
+							>
+								<img
+									src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Joaquin_2015-10-03_1437Z.png/1280px-Joaquin_2015-10-03_1437Z.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail&_=20161220191732"
+									alt="Satellite view of Hurricane Joaquin"
+									class="h-[260px] w-full object-cover"
+									loading="lazy"
+								/>
+								<div class="px-5 pb-5 pt-4">
+									<h2 class="text-[20px] leading-[0.9] text-[var(--ios-gray-700)]" style="font-family: Georgia, 'Times New Roman', serif">Hurricane Joaquin</h2>
+									<p class="mt-2 text-[15px] leading-tight text-[var(--ios-gray-500)]">Category 4 Atlantic hurricane in 2015</p>
+									<p class="mt-3 line-clamp-3 text-[15px] leading-[1.4] text-[var(--ios-gray-700)]">
+										Hurricane Joaquin was a powerful tropical cyclone that devastated several districts of the Bahamas in early October 2015.
+									</p>
+								</div>
+							</button>
+
+							<div class="mt-10 flex items-center justify-between">
+								<div>
+									<p class="mt-2 text-[15px] font-semibold leading-tight text-[var(--ios-gray-700)]">Top read</p>
+									<p class="mt-2 text-[15px] leading-tight text-[var(--ios-gray-500)]">On English Wikipedia</p>
+								</div>
+								<button class="text-[28px] leading-none text-[var(--ios-gray-500)]" aria-label="More">⋮</button>
+							</div>
+
+							<div class="mt-4 rounded-[20px] bg-white px-4 py-3 shadow-md">
+								<div class="flex items-center gap-3 border-b border-[var(--ios-gray-300)] py-2">
+									<span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--ios-progressive)] text-[15px] text-[var(--ios-progressive)]">1</span>
+									<div class="min-w-0 flex-1">
+										<p class="truncate text-[17px] font-medium text-[var(--ios-gray-700)]">Vijay (actor)</p>
+										<p class="truncate text-[14px] text-[var(--ios-gray-500)]">Indian politician and actor</p>
+									</div>
+									<div id="top-read-thumb-0" class="h-[52px] w-[52px] shrink-0 rounded-[10px] bg-[var(--ios-gray-300)]"></div>
+								</div>
+								<div class="flex items-center gap-3 border-b border-[var(--ios-gray-300)] py-2">
+									<span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--ios-progressive)] text-[15px] text-[var(--ios-progressive)]">2</span>
+									<div class="min-w-0 flex-1">
+										<p class="truncate text-[17px] font-medium text-[var(--ios-gray-700)]">2026 Tamil Nadu Election</p>
+										<p class="truncate text-[14px] text-[var(--ios-gray-500)]">Election to the 18th Legislative Assembly</p>
+									</div>
+									<div id="top-read-thumb-1" class="h-[52px] w-[52px] shrink-0 rounded-[10px] bg-[var(--ios-gray-300)]"></div>
+								</div>
+								<div class="flex items-center gap-3 border-b border-[var(--ios-gray-300)] py-2">
+									<span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--ios-progressive)] text-[15px] text-[var(--ios-progressive)]">3</span>
+									<div class="min-w-0 flex-1">
+										<p class="truncate text-[17px] font-medium text-[var(--ios-gray-700)]">2026 West Bengal Legislative Assembly election</p>
+										<p class="truncate text-[14px] text-[var(--ios-gray-500)]">Election to the 18th Legislative Assembly</p>
+									</div>
+									<div id="top-read-thumb-2" class="h-[52px] w-[52px] shrink-0 rounded-[10px] bg-[var(--ios-gray-300)]"></div>
+								</div>
+								<div class="flex items-center gap-3 border-b border-[var(--ios-gray-300)] py-2">
+									<span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--ios-progressive)] text-[15px] text-[var(--ios-progressive)]">4</span>
+									<div class="min-w-0 flex-1">
+										<p class="truncate text-[17px] font-medium text-[var(--ios-gray-700)]">Coronation of Charles III and Camilla</p>
+										<p class="truncate text-[14px] text-[var(--ios-gray-500)]">2023 coronation in the United Kingdom</p>
+									</div>
+									<div id="top-read-thumb-3" class="h-[52px] w-[52px] shrink-0 rounded-[10px] bg-[var(--ios-gray-300)]"></div>
+								</div>
+								<div class="flex items-center gap-3 py-2">
+									<span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--ios-progressive)] text-[15px] text-[var(--ios-progressive)]">5</span>
+									<div class="min-w-0 flex-1">
+										<p class="truncate text-[17px] font-medium text-[var(--ios-gray-700)]">Roger Federer</p>
+										<p class="truncate text-[14px] text-[var(--ios-gray-500)]">Swiss professional tennis player</p>
+									</div>
+									<div id="top-read-thumb-4" class="h-[52px] w-[52px] shrink-0 rounded-[10px] bg-[var(--ios-gray-300)]"></div>
+								</div>
+							</div>
+						</section>
+					</div>
+				</article>
+
 				<article id="wiki-article" class="relative h-full overflow-y-auto">
 					<div class="scroll-edge-soft-top" aria-hidden="true"></div>
 					<div class="pb-[190px] pt-20">
@@ -705,6 +847,10 @@
 			}
 
 			const articleEl = document.getElementById("wiki-article");
+			const homeScreenEl = document.getElementById("home-screen");
+			const appHeaderEl = document.getElementById("app-header");
+			const articleBackButtonEl = document.getElementById("article-back-btn");
+			const featuredArticleCardEl = document.getElementById("featured-article-card");
 			const primaryNavRowEl = document.getElementById("primary-nav-row");
 			const bottomToolbarEl = document.getElementById("bottom-toolbar-region");
 			const tabBarEl = document.getElementById("tab-bar");
@@ -715,6 +861,20 @@
 			let lastScrollTop = 0;
 			let wasTabBarCompactBeforeSearch = false;
 			let wasToolbarNestedBeforeSearch = false;
+
+			function setViewMode(mode) {
+				const isHome = mode === "home";
+				document.body.classList.toggle("home-view-active", isHome);
+				document.body.classList.toggle("article-view-active", !isHome);
+
+				if (appHeaderEl) {
+					appHeaderEl.style.display = isHome ? "none" : "";
+				}
+
+				if (homeScreenEl) {
+					homeScreenEl.scrollTop = 0;
+				}
+			}
 
 			// ── Search history ───────────────────────────────────────
 			let searchHistory = [];
@@ -860,6 +1020,7 @@
 					wikiSearchInputEl.value = "";
 				}
 				predictedSearchResults = [];
+				setViewMode("article");
 				setSearchViewActive(false);
 				await loadWikipediaSummary(normalizedTopic);
 
@@ -970,6 +1131,7 @@
 					listEl.querySelectorAll(".history-entry").forEach((btn) => {
 						btn.addEventListener("click", () => {
 							const title = btn.getAttribute("data-title");
+							setViewMode("article");
 							setSearchViewActive(false);
 							void loadWikipediaSummary(title);
 							if (articleEl) articleEl.scrollTo({ top: 0, behavior: "smooth" });
@@ -1073,6 +1235,7 @@
 
 				const resolvedTopic = await resolveWikipediaTopic(query);
 				wikiSearchInputEl.value = "";
+				setViewMode("article");
 				setSearchViewActive(false);
 				await loadWikipediaSummary(resolvedTopic);
 
@@ -1102,6 +1265,8 @@
 			const exploreTabButtonEl = document.getElementById("explore-tab-button");
 			if (exploreTabButtonEl) {
 				exploreTabButtonEl.addEventListener("click", () => {
+					setViewMode("home");
+					setSearchViewActive(false);
 					if (bottomToolbarEl) {
 						bottomToolbarEl.classList.remove("is-nested", "is-searching", "is-searching-inline");
 					}
@@ -1112,6 +1277,21 @@
 						primaryNavRowEl.classList.remove("-translate-y-4", "opacity-0", "pointer-events-none");
 					}
 					lastScrollTop = articleEl ? articleEl.scrollTop : 0;
+				});
+			}
+
+			if (featuredArticleCardEl) {
+				featuredArticleCardEl.addEventListener("click", () => {
+					const topic = featuredArticleCardEl.getAttribute("data-topic") || "Hurricane Joaquin";
+					const description = featuredArticleCardEl.getAttribute("data-description") || "Wikipedia article";
+					void openArticleFromSearchSelection(topic, topic, description);
+				});
+			}
+
+			if (articleBackButtonEl) {
+				articleBackButtonEl.addEventListener("click", () => {
+					setViewMode("home");
+					setSearchViewActive(false);
 				});
 			}
 
@@ -1317,7 +1497,37 @@
 				};
 			})();
 
-			loadWikipediaSummary("Cactus");
+			setViewMode("home");
+
+			// Fetch top-read thumbnails from Wikipedia
+			(async function loadTopReadThumbnails() {
+				const topReadItems = [
+					{ topic: "Vijay (actor)", match: "vijay", idx: 0 },
+					{ topic: "2026 Tamil Nadu Legislative Assembly election", match: "tamil", idx: 1 },
+					{ topic: "2026 West Bengal Legislative Assembly election", match: "west bengal", idx: 2 },
+					{ topic: "Coronation of Charles III and Camilla", match: "coronation of charles", idx: 3 },
+					{ topic: "Roger Federer", match: "federer", idx: 4 },
+				];
+				const titles = topReadItems.map((i) => encodeURIComponent(i.topic)).join("|");
+				try {
+					const res = await fetch(
+						`https://en.wikipedia.org/w/api.php?action=query&titles=${titles}&prop=pageimages&piprop=thumbnail&pithumbsize=104&format=json&formatversion=2&origin=*`,
+						{ headers: { accept: "application/json" } }
+					);
+					const data = await res.json();
+					const pages = data?.query?.pages || [];
+					pages.forEach((page) => {
+						const thumb = page?.thumbnail?.source;
+						if (!thumb) return;
+						const titleLower = (page.title || "").toLowerCase();
+						const item = topReadItems.find((i) => titleLower.includes(i.match));
+						if (!item) return;
+						const slot = document.getElementById(`top-read-thumb-${item.idx}`);
+						if (!slot) return;
+						slot.innerHTML = `<img src="${thumb}" alt="" class="h-full w-full rounded-[10px] object-cover" loading="lazy" />`;
+					});
+				} catch (_) {}
+			})();
 		</script>
 	</body>
 </html>
