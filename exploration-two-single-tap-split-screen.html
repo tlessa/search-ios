@@ -678,15 +678,11 @@
 									<span class="language-tab-code">ES</span>
 									<span class="language-tab-label">Español</span>
 								</button>
-					
+	
 								<button type="button" class="language-tab" role="tab" aria-selected="false" data-lang="more">
 									<span class="language-tab-more">More</span>
 								</button>
 							</div>
-						</div>
-						<div class="px-4 pt-3 pb-1 flex items-center justify-between">
-							<h2 class="text-[22px] font-bold text-[var(--ios-gray-700)]">Search history</h2>
-							<button id="clear-all-history-btn" class="text-[14px] font-medium text-[#3366cc]" type="button">Clear</button>
 						</div>
 						<div id="search-history-list" class="px-4">
 							<p class="text-[15px] text-[var(--ios-gray-500)]">No recent searches.</p>
@@ -966,7 +962,8 @@
 			let predictionRequestToken = 0;
 			let predictionDebounceTimer = null;
 			const placeholderSearchHistory = [
-				{ type: "string", query: "black holes", timestamp: Date.now() - 1000 * 60 * 5 },
+				{ type: "string", query: "black holes", timestamp: Date.now() - 1000 * 60 * 3 },
+				{ type: "string", query: "ancient rome", timestamp: Date.now() - 1000 * 60 * 15 },
 				{
 					query: "Saturn rings",
 					title: "Saturn",
@@ -974,7 +971,6 @@
 					thumbnail: "https://picsum.photos/seed/saturn-template/120/120",
 					timestamp: Date.now() - 1000 * 60 * 22,
 				},
-				{ type: "string", query: "ancient rome", timestamp: Date.now() - 1000 * 60 * 60 * 6 },
 				{
 					query: "Frida Kahlo",
 					title: "Frida Kahlo",
@@ -982,7 +978,6 @@
 					thumbnail: "https://picsum.photos/seed/frida-template/120/120",
 					timestamp: Date.now() - 1000 * 60 * 60 * 7,
 				},
-				{ type: "string", query: "mount everest height", timestamp: Date.now() - 1000 * 60 * 60 * 28 },
 				{
 					query: "Kyoto temples",
 					title: "Kyoto",
@@ -1156,19 +1151,8 @@
 				}
 
 				if (headingEl) {
-					headingEl.textContent = "Search history";
+					headingEl.textContent = "History";
 					headingEl.style.display = "";
-				}
-
-				const clearAllBtn = document.getElementById("clear-all-history-btn");
-				const currentQueryForClear = wikiSearchInputEl ? wikiSearchInputEl.value.trim() : "";
-				if (clearAllBtn) {
-					clearAllBtn.style.display = (queryMode && currentQueryForClear) ? "none" : "";
-					clearAllBtn.onclick = () => {
-						searchHistory = [];
-						saveSearchHistory();
-						renderSearchHistory(queryMode);
-					};
 				}
 
 				if (queryMode) {
@@ -1218,54 +1202,118 @@
 					}
 				}
 
-				if (searchHistory.length === 0) {
-					listEl.innerHTML = '<p class="text-[15px] text-[var(--ios-gray-500)]">No recent searches.</p>';
-					return;
-				} else {
-					// Article-card mode — grouped by date
-					const groups = [];
-					const groupMap = {};
+				{
+					const recentQueries = [];
+					const seenQueries = new Set();
 					for (const entry of searchHistory) {
-						const label = formatHistoryDateLabel(entry.timestamp);
-						if (!groupMap[label]) { groupMap[label] = []; groups.push({ label, entries: groupMap[label] }); }
-						groupMap[label].push(entry);
+						if (entry.type !== "string") continue;
+						const q = (entry.query || "").trim();
+						if (!q || seenQueries.has(q)) continue;
+						seenQueries.add(q);
+						recentQueries.push(q);
 					}
+
+					const destinationEntries = searchHistory.filter((entry) => entry.type !== "string");
 					let html = "";
-					for (const group of groups) {
-						html += `<div class="mb-2 mt-4">
-							<p class="mb-1 text-[13px] font-semibold tracking-wide text-[var(--ios-gray-500)]">${group.label}</p>`;
-						for (let i = 0; i < group.entries.length; i++) {
-							const entry = group.entries[i];
-							const isFirst = i === 0;
-							const borderTop = isFirst ? " border-t border-[var(--ios-gray-300)]" : "";
-							if (entry.type === "string") {
-								const safeQuery = (entry.query || "").replace(/&/g, "&amp;").replace(/"/g, "&quot;");
-								html += `<button class="history-string-entry flex w-full items-center gap-3 border-b border-[var(--ios-gray-300)]${borderTop} py-[0.15em] text-left" data-query="${safeQuery}">
+					const RECENT_LIMIT = 3;
+					const visibleQueries = recentQueries.slice(0, RECENT_LIMIT);
+					const extraQueries = recentQueries.slice(RECENT_LIMIT);
+
+					html += `<section class="mb-6">
+						<div class="mb-2 flex items-center justify-between">
+							<h3 class="text-[14px] font-semibold tracking-wide text-[var(--ios-gray-500)]">Recent searches</h3>
+							<button class="clear-recent-btn text-[14px] font-medium text-[#3366cc]" type="button">Clear</button>
+						</div>`;
+					if (visibleQueries.length === 0) {
+						html += `<p class="text-[15px] text-[var(--ios-gray-500)]">No recent search strings.</p>`;
+					} else {
+						for (const query of visibleQueries) {
+							const safeQuery = query.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+							html += `<button class="recent-search-entry flex w-full items-center gap-3 border-b border-[var(--ios-gray-300)] py-[0.15rem] text-left" data-query="${safeQuery}">
+								<div class="min-w-0 flex-1">
+									<p class="text-[16px] font-medium leading-snug text-[var(--ios-gray-700)]">${query}</p>
+								</div>
+								<div class="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[10px]">
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ios-gray-500)"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+								</div>
+							</button>`;
+						}
+						if (extraQueries.length > 0) {
+							html += `<div id="recent-extras" style="display:none">`;
+							for (const query of extraQueries) {
+								const safeQuery = query.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+								html += `<button class="recent-search-entry flex w-full items-center gap-3 border-b border-[var(--ios-gray-300)] py-[0.15rem] text-left" data-query="${safeQuery}">
 									<div class="min-w-0 flex-1">
-										<p class="text-[16px] font-medium leading-snug text-[var(--ios-gray-700)]">${entry.query}</p>
+										<p class="text-[16px] font-medium leading-snug text-[var(--ios-gray-700)]">${query}</p>
 									</div>
 									<div class="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[10px]">
 										<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ios-gray-500)"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 									</div>
 								</button>`;
-							} else {
-								const safeTitle = (entry.title || entry.query).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
-								const thumb = entry.thumbnail
-									? `<img src="${entry.thumbnail}" alt="" class="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" loading="lazy" />`
-									: `<div class="h-[52px] w-[52px] shrink-0 rounded-[10px] bg-[var(--ios-gray-300)]"></div>`;
-								html += `<button class="history-entry flex w-full items-center gap-3 border-b border-[var(--ios-gray-300)]${borderTop} py-3 text-left" data-title="${safeTitle}">
-									<div class="min-w-0 flex-1">
-										<p class="text-[16px] font-medium leading-snug text-[var(--ios-gray-700)]">${entry.title || entry.query}</p>
-										<p class="truncate text-[13px] text-[var(--ios-gray-500)]">${entry.description || ""}</p>
-									</div>
-									${thumb}
-								</button>`;
 							}
+							html += `</div>
+							<button id="recent-show-more-btn" class="flex w-full items-center justify-center gap-1 py-2 text-[14px] font-medium text-[#3366cc]">
+								See more
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+							</button>`;
 						}
-						html += `</div>`;
 					}
+					html += `</section>`;
+
+					html += `<section>
+						<div class="mb-2 flex items-center justify-between">
+							<h3 class="text-[14px] font-semibold tracking-wide text-[var(--ios-gray-500)]">History</h3>
+							${destinationEntries.length > 0 ? '<button class="clear-history-btn text-[14px] font-medium text-[#3366cc]" type="button">Clear</button>' : ''}
+						</div>`;
+					if (destinationEntries.length === 0) {
+						html += `<p class="text-[15px] text-[var(--ios-gray-500)]">No history</p>`;
+					} else {
+						for (const entry of destinationEntries) {
+							const safeTitle = (entry.title || entry.query).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+							const thumb = entry.thumbnail
+								? `<img src="${entry.thumbnail}" alt="" class="h-[52px] w-[52px] shrink-0 rounded-[10px] object-cover" loading="lazy" />`
+								: `<div class="h-[52px] w-[52px] shrink-0 rounded-[10px] bg-[var(--ios-gray-300)]"></div>`;
+							html += `<button class="history-entry flex w-full items-center gap-3 border-b border-[var(--ios-gray-300)] py-3 text-left" data-title="${safeTitle}">
+								<div class="min-w-0 flex-1">
+									<p class="text-[16px] font-medium leading-snug text-[var(--ios-gray-700)]">${entry.title || entry.query}</p>
+									<p class="truncate text-[13px] text-[var(--ios-gray-500)]">${entry.description || ""}</p>
+								</div>
+								${thumb}
+							</button>`;
+						}
+					}
+					html += `</section>`;
+
 					listEl.innerHTML = html;
-					listEl.querySelectorAll(".history-string-entry").forEach((btn) => {
+					const clearRecentBtn = listEl.querySelector(".clear-recent-btn");
+					if (clearRecentBtn) {
+						clearRecentBtn.addEventListener("click", () => {
+							searchHistory = searchHistory.filter((e) => e.type !== "string");
+							saveSearchHistory();
+							renderSearchHistory(queryMode);
+						});
+					}
+					const clearHistoryBtn = listEl.querySelector(".clear-history-btn");
+					if (clearHistoryBtn) {
+						clearHistoryBtn.addEventListener("click", () => {
+							searchHistory = searchHistory.filter((e) => e.type === "string");
+							saveSearchHistory();
+							renderSearchHistory(queryMode);
+						});
+					}
+					const showMoreBtn = listEl.querySelector("#recent-show-more-btn");
+					if (showMoreBtn) {
+						let extrasExpanded = false;
+						showMoreBtn.addEventListener("click", () => {
+							const extras = listEl.querySelector("#recent-extras");
+							extrasExpanded = !extrasExpanded;
+							extras.style.display = extrasExpanded ? "" : "none";
+							showMoreBtn.innerHTML = extrasExpanded
+								? `See less <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>`
+								: `See more <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
+						});
+					}
+					listEl.querySelectorAll(".recent-search-entry").forEach((btn) => {
 						btn.addEventListener("click", () => {
 							const q = btn.getAttribute("data-query") || "";
 							if (wikiSearchInputEl) {
