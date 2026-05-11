@@ -23,6 +23,10 @@
 				--ios-progressive: #3366cc;
 			}
 
+			#search-query-prompt {
+				display: none;
+			}
+
 			/* Soft page background to support glass contrast */
 			body {
 				min-height: 100dvh;
@@ -684,6 +688,7 @@
 								</button>
 							</div>
 						</div>
+						<div id="search-query-prompt" class="pb-1 text-[15px] font-medium text-[var(--ios-gray-500)]"></div>
 						<div class="px-4 pt-3 pb-1 flex items-center justify-between">
 							<h2 class="text-[22px] font-bold text-[var(--ios-gray-700)]">Search history</h2>
 							<button id="clear-all-history-btn" class="text-[14px] font-medium text-[#3366cc]" type="button">Clear</button>
@@ -939,6 +944,7 @@
 			const searchTabButtonEl = document.getElementById("search-tab-button");
 			const wikiSearchInputEl = document.getElementById("wiki-search");
 			const searchLanguageTabsEl = document.getElementById("search-language-tabs");
+			const searchQueryPromptEl = document.getElementById("search-query-prompt");
 			const compactSearchPanelEl = document.getElementById("compact-search-panel");
 			let activateSearchTypingMode = () => false;
 			let lastScrollTop = 0;
@@ -965,6 +971,7 @@
 			let predictionsLoaded = false;
 			let predictionRequestToken = 0;
 			let predictionDebounceTimer = null;
+			let canShowNoResultsState = false;
 			const placeholderSearchHistory = [
 				{ type: "string", query: "black holes", timestamp: Date.now() - 1000 * 60 * 5 },
 				{
@@ -1041,6 +1048,15 @@
 				return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 			}
 
+			function escapeHtml(value) {
+				return String(value || "")
+					.replace(/&/g, "&amp;")
+					.replace(/</g, "&lt;")
+					.replace(/>/g, "&gt;")
+					.replace(/\"/g, "&quot;")
+					.replace(/'/g, "&#39;");
+			}
+
 			async function fetchWikipediaPredictions(query) {
 				const trimmedQuery = query.trim();
 				if (!trimmedQuery) {
@@ -1080,6 +1096,7 @@
 				if (!trimmedQuery) {
 					predictedSearchResults = [];
 					predictionsLoaded = false;
+					canShowNoResultsState = false;
 					if (document.body.classList.contains("search-typing")) {
 						renderSearchHistory(true);
 					}
@@ -1150,9 +1167,27 @@
 				const listEl = document.getElementById("search-history-list");
 				const headingEl = document.querySelector("#search-history-screen h2");
 				const languageTabsEl = document.getElementById("search-language-tabs");
+				const currentQuery = wikiSearchInputEl ? wikiSearchInputEl.value.trim() : "";
 				if (!listEl) return;
 				if (languageTabsEl) {
 					languageTabsEl.style.display = queryMode ? "block" : "none";
+				}
+				if (searchQueryPromptEl) {
+					if (queryMode && currentQuery) {
+						searchQueryPromptEl.style.display = "block";
+						searchQueryPromptEl.innerHTML = `<button id="search-query-prompt-btn" type="button" class="mt-2 flex w-full items-center gap-2 bg-[#dbeafe] px-4 py-3 text-left"><img src="svg-icons/search-tab-bar.svg" alt="" aria-hidden="true" class="h-[16px] w-[16px] opacity-70" /><span class="text-[15px] text-[var(--ios-gray-500)]">Search for:</span><span class="min-w-0 truncate text-[15px] font-semibold" style="color: var(--ios-gray-700);">${escapeHtml(currentQuery)}</span></button>`;
+						const promptBtn = document.getElementById("search-query-prompt-btn");
+						if (promptBtn) {
+							promptBtn.setAttribute("aria-label", `Search for ${currentQuery}`);
+							promptBtn.addEventListener("click", () => {
+								canShowNoResultsState = true;
+								void submitCompactSearch();
+							});
+						}
+					} else {
+						searchQueryPromptEl.style.display = "none";
+						searchQueryPromptEl.textContent = "";
+					}
 				}
 
 				if (headingEl) {
@@ -1161,7 +1196,7 @@
 				}
 
 				const clearAllBtn = document.getElementById("clear-all-history-btn");
-				const currentQueryForClear = wikiSearchInputEl ? wikiSearchInputEl.value.trim() : "";
+				const currentQueryForClear = currentQuery;
 				if (clearAllBtn) {
 					clearAllBtn.style.display = (queryMode && currentQueryForClear) ? "none" : "";
 					clearAllBtn.onclick = () => {
@@ -1172,13 +1207,16 @@
 				}
 
 				if (queryMode) {
-					const currentQuery = wikiSearchInputEl ? wikiSearchInputEl.value.trim() : "";
 					if (headingEl && currentQuery) {
 						headingEl.style.display = "none";
 					}
 					if (currentQuery) {
 						if (predictedSearchResults.length === 0) {
 							if (!predictionsLoaded) {
+								listEl.innerHTML = '';
+								return;
+							}
+							if (!canShowNoResultsState) {
 								listEl.innerHTML = '';
 								return;
 							}
@@ -1294,6 +1332,11 @@
 				document.body.classList.toggle("search-view-active", isActive);
 				if (!isActive) {
 					document.body.classList.remove("search-typing");
+					canShowNoResultsState = false;
+					if (searchQueryPromptEl) {
+						searchQueryPromptEl.style.display = "none";
+						searchQueryPromptEl.textContent = "";
+					}
 					predictedSearchResults = [];
 					predictionsLoaded = false;
 					predictionRequestToken += 1;
@@ -1532,6 +1575,8 @@
 					if (!document.body.classList.contains("search-view-active")) {
 						return;
 					}
+
+					canShowNoResultsState = false;
 
 					if (!document.body.classList.contains("search-typing")) {
 						void activateSearchTypingMode();

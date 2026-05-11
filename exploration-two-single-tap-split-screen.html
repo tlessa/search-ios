@@ -963,38 +963,32 @@
 			let predictionDebounceTimer = null;
 			const placeholderSearchHistory = [
 				{ type: "string", query: "black holes", timestamp: Date.now() - 1000 * 60 * 3 },
-				{ type: "string", query: "ancient rome", timestamp: Date.now() - 1000 * 60 * 15 },
+				{ type: "string", query: "ancient rome", timestamp: Date.now() - 1000 * 60 * 22 },
 				{
-					query: "Saturn rings",
-					title: "Saturn",
-					description: "Sixth planet from the Sun",
-					thumbnail: "https://picsum.photos/seed/saturn-template/120/120",
-					timestamp: Date.now() - 1000 * 60 * 22,
+					query: "black holes",
+					title: "Black hole",
+					description: "Region of spacetime where gravity is strong enough that nothing can escape",
+					thumbnail: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Black_hole_-_Messier_87_crop_max_res.jpg/120px-Black_hole_-_Messier_87_crop_max_res.jpg",
+					timestamp: Date.now() - 1000 * 60 * 10,
 				},
 				{
-					query: "Frida Kahlo",
-					title: "Frida Kahlo",
-					description: "Mexican painter (1907–1954)",
-					thumbnail: "https://picsum.photos/seed/frida-template/120/120",
-					timestamp: Date.now() - 1000 * 60 * 60 * 7,
-				},
-				{
-					query: "Kyoto temples",
-					title: "Kyoto",
-					description: "City in the Kinki region of Japan",
-					thumbnail: "https://picsum.photos/seed/kyoto-template/120/120",
-					timestamp: Date.now() - 1000 * 60 * 60 * 30,
+					query: "ancient rome",
+					title: "Ancient Rome",
+					description: "Roman civilisation from the 8th century BC to the 5th century AD",
+					thumbnail: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Colosseum_in_Rome-April_2007-1-_copie_2B.jpg/120px-Colosseum_in_Rome-April_2007-1-_copie_2B.jpg",
+					timestamp: Date.now() - 1000 * 60 * 35,
 				},
 			];
+			const HISTORY_VERSION = "v2";
 			try { searchHistory = JSON.parse(sessionStorage.getItem("wikiSearchHistory") || "[]"); } catch (_) {}
-			if (!Array.isArray(searchHistory) || searchHistory.length === 0) {
+			if (!Array.isArray(searchHistory) || searchHistory.length === 0 || sessionStorage.getItem("wikiSearchHistoryVersion") !== HISTORY_VERSION) {
 				searchHistory = placeholderSearchHistory.map((entry) => ({ ...entry }));
+				sessionStorage.setItem("wikiSearchHistoryVersion", HISTORY_VERSION);
 				saveSearchHistory();
 			}
 			const templateThumbnailByQuery = {
-				"Saturn rings": "https://picsum.photos/seed/saturn-template/120/120",
-				"Frida Kahlo": "https://picsum.photos/seed/frida-template/120/120",
-				"Kyoto temples": "https://picsum.photos/seed/kyoto-template/120/120",
+				"black holes": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/Black_hole_-_Messier_87_crop_max_res.jpg/120px-Black_hole_-_Messier_87_crop_max_res.jpg",
+				"ancient rome": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Colosseum_in_Rome-April_2007-1-_copie_2B.jpg/120px-Colosseum_in_Rome-April_2007-1-_copie_2B.jpg",
 			};
 			let seededHistoryUpdated = false;
 			searchHistory = searchHistory.map((entry) => {
@@ -1123,8 +1117,12 @@
 				const heroEl = document.getElementById("wiki-hero");
 				const bgMatch = (heroEl?.style.backgroundImage || "").match(/url\(['"]?([^'"]+)['"]?\)/);
 
+				const effectiveQuery = (rawQuery || "").trim();
+				if (effectiveQuery) {
+					addQueryStringToHistory(effectiveQuery);
+				}
 				addToSearchHistory(
-					rawQuery || normalizedTopic,
+					effectiveQuery || normalizedTopic,
 					titleEl?.textContent || normalizedTopic,
 					descEl?.textContent || fallbackDescription || "",
 					bgMatch ? bgMatch[1] : null
